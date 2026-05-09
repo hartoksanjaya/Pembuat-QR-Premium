@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f1115">
+  <meta name="description" content="QR Studio Pro - Generator QR Code premium dengan kustomisasi penuh">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <title>QR Studio Pro | Pembuat QR Premium</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/qr-code-styling@1.6.0-rc.1/lib/qr-code-styling.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0f1115;
+      --bg-card: rgba(255, 255, 255, 0.04);
+      --border: rgba(255, 255, 255, 0.08);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --radius: 16px;
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    html, body {
+      width: 100%;
+      overflow-x: hidden; /* 🔒 Mencegah scroll horizontal */
+    }
+    body {
+      background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15), transparent 40%),
+                  radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.12), transparent 40%),
+                  var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1.2rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      width: 100%;
+      animation: fadeDown 0.6s ease-out;
+    }
+    header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 0.4rem; line-height: 1.2; }
+    header p { color: var(--text-muted); font-size: 0.9rem; padding: 0 0.5rem; }
+
+    .app-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      width: 100%;
+      max-width: 1100px;
+      animation: fadeUp 0.7s ease-out 0.2s both;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.8rem;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      width: 100%;
+      min-width: 0; /* 🔑 Mencegah flex/grid overflow */
+    }
+
+    .card h2 { font-size: 1.15rem; margin-bottom: 1rem; font-weight: 600; }
+
+    .form-group { margin-bottom: 1rem; width: 100%; }
+    label { display: block; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+    
+    input[type="text"], input[type="url"], select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-main);
+      font-size: 0.92rem;
+      transition: all 0.2s;
+      min-width: 0;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    .row { display: flex; gap: 0.8rem; width: 100%; }
+    .col { flex: 1; min-width: 0; }
+
+    .color-picker-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.5rem 0.8rem;
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      width: 100%;
+    }
+    input[type="color"] {
+      -webkit-appearance: none;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      background: none;
+      padding: 0;
+    }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
+
+    .upload-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.85rem;
+      background: rgba(255,255,255,0.05);
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.88rem;
+      text-align: center;
+    }
+    .upload-btn:hover { border-color: var(--primary); color: var(--text-main); background: rgba(99,102,241,0.05); }
+    #imageInput { display: none; }
+
+    .preview-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 380px;
+      background: radial-gradient(circle, rgba(255,255,255,0.03), transparent 70%);
+    }
+    
+    .qr-wrapper {
+      width: 100%;
+      max-width: 280px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: center;
+    }
+    #qr-canvas { background: #fff; border-radius: 12px; padding: 12px; line-height: 0; }
+    /* 🔑 Paksa SVG/Canvas agar responsif */
+    #qr-canvas > * {
+      width: 100% !important;
+      height: auto !important;
+      max-width: 100%;
+    }
+
+    .actions { display: flex; gap: 0.8rem; width: 100%; }
+    .btn {
+      flex: 1;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      font-size: 0.9rem;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(99,102,241,0.3); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+    .btn-outline:hover { border-color: var(--text-muted); color: var(--text-main); }
+
+    .toast {
+      position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--success); color: white; padding: 0.7rem 1.4rem; border-radius: 50px;
+      font-weight: 500; opacity: 0; pointer-events: none; transition: all 0.3s;
+      z-index: 999;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* 📱 Responsive Fixes */
+    @media (max-width: 900px) {
+      .app-container { grid-template-columns: 1fr; gap: 1.5rem; }
+      body { padding: 1.5rem 1rem; }
+    }
+    @media (max-width: 480px) {
+      header h1 { font-size: 1.6rem; }
+      .card { padding: 1.2rem; }
+      .row { flex-direction: column; gap: 0; }
+      .actions { flex-direction: column; }
+      .preview-area { min-height: auto; padding-bottom: 1rem; }
+    }
+
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>QR Studio Pro</h1>
+    <p>Generator QR Code premium dengan dukungan foto/logo & kustomisasi penuh</p>
+  </header>
+
+  <div class="app-container">
+    <!-- Kontrol -->
+    <div class="card">
+      <h2>⚙️ Pengaturan QR</h2>
+      <div class="form-group">
+        <label for="qrData">URL atau Teks</label>
+        <input type="url" id="qrData" placeholder="https://website-anda.com" value="https://example.com">
+      </div>
+
+      <div class="form-group">
+        <label for="imageInput">📷 Tambahkan Foto / Logo (Opsional)</label>
+        <label for="imageInput" class="upload-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span id="uploadText">Pilih Gambar</span>
+        </label>
+        <input type="file" id="imageInput" accept="image/png, image/jpeg, image/svg+xml">
+      </div>
+
+      <div class="row">
+        <div class="col form-group">
+          <label>Warna Titik</label>
+          <div class="color-picker-wrapper">
+            <input type="color" id="dotColor" value="#6366f1">
+            <span id="dotColorText" style="font-size:0.8rem; color:var(--text-muted)">#6366f1</span>
+          </div>
+        </div>
+        <div class="col form-group">
+          <label>Warna Latar</label>
+          <div class="color-picker-wrapper">
+            <input type="color" id="bgColor" value="#ffffff">
+            <span id="bgColorText" style="font-size:0.8rem; color:var(--text-muted)">#ffffff</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col form-group">
+          <label>Bentuk Titik</label>
+          <select id="dotType">
+            <option value="rounded">Rounded</option>
+            <option value="dots">Dots</option>
+            <option value="classy">Classy</option>
+            <option value="classy-rounded">Classy Rounded</option>
+            <option value="square" selected>Square</option>
+          </select>
+        </div>
+        <div class="col form-group">
+          <label>Bentuk Sudut</label>
+          <select id="cornerType">
+            <option value="extra-rounded" selected>Extra Rounded</option>
+            <option value="dot">Dot</option>
+            <option value="square">Square</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Ukuran Margin Logo: <span id="marginVal">10px</span></label>
+        <input type="range" id="logoMargin" min="0" max="30" value="10" style="width:100%">
+      </div>
+    </div>
+
+    <!-- Preview & Download -->
+    <div class="card preview-area">
+      <h2>📱 Preview</h2>
+      <div class="qr-wrapper">
+        <div id="qr-canvas"></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="downloadPng">⬇️ PNG</button>
+        <button class="btn btn-outline" id="downloadSvg">📄 SVG</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">✅ Berhasil diunduh!</div>
+
+  <script>
+    // ✅ FIX: Menambahkan key 'data:' yang sebelumnya terlewat
+    const qrCode = new QRCodeStyling({
+      width: 300,
+      height: 300,
+      type: "svg",
+      data: "https://example.com",
+      image: "",
+      dotsOptions: { color: "#6366f1", type: "square" },
+      backgroundOptions: { color: "#ffffff" },
+      cornersSquareOptions: { type: "extra-rounded", color: "#6366f1" },
+      imageOptions: { crossOrigin: "anonymous", margin: 10 }
+    });
+
+    qrCode.append(document.getElementById("qr-canvas"));
+
+    function debounce(func, wait) {
+      let timeout;
+      return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      };
+    }
+
+    const updateQR = debounce(() => {
+      qrCode.update({
+        data: document.getElementById("qrData").value || "https://example.com",
+        image: window.currentLogo || "",
+        dotsOptions: {
+          color: document.getElementById("dotColor").value,
+          type: document.getElementById("dotType").value
+        },
+        backgroundOptions: { color: document.getElementById("bgColor").value },
+        cornersSquareOptions: {
+          type: document.getElementById("cornerType").value,
+          color: document.getElementById("dotColor").value
+        },
+        imageOptions: { margin: parseInt(document.getElementById("logoMargin").value) }
+      });
+    }, 250);
+
+    // Event Listeners
+    document.getElementById("qrData").addEventListener("input", updateQR);
+    document.getElementById("dotColor").addEventListener("input", (e) => {
+      document.getElementById("dotColorText").textContent = e.target.value;
+      updateQR();
+    });
+    document.getElementById("bgColor").addEventListener("input", (e) => {
+      document.getElementById("bgColorText").textContent = e.target.value;
+      updateQR();
+    });
+    ["dotType", "cornerType"].forEach(id => {
+      document.getElementById(id).addEventListener("change", updateQR);
+    });
+
+    document.getElementById("logoMargin").addEventListener("input", (e) => {
+      document.getElementById("marginVal").textContent = e.target.value + "px";
+      updateQR();
+    });
+
+    // Upload Gambar
+    document.getElementById("imageInput").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      document.getElementById("uploadText").textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        window.currentLogo = evt.target.result;
+        updateQR();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Download
+    function showToast() {
+      const t = document.getElementById("toast");
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2000);
+    }
+
+    document.getElementById("downloadPng").addEventListener("click", () => {
+      qrCode.download({ name: "qr-premium", extension: "png" });
+      showToast();
+    });
+
+    document.getElementById("downloadSvg").addEventListener("click", () => {
+      qrCode.download({ name: "qr-premium", extension: "svg" });
+      showToast();
+    });
+
+    updateQR();
+        // =====================================
+// REGISTER SERVICE WORKER
+// ==========================================
+if ('servic-eWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/'
+      });
+      console.log('[PWA] Service Worker registered:', registration.scope);
+
+      // Auto update setiap 1 jam
+      setInterval(() => {
+        registration.update();
+      }, 60 * 60 * 1000);
+
+      // Detect update
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateNotification();
+          }
+        });
+      });
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('[PWA] New service worker activated');
+        window.location.reload();
+      });
+
+    } catch (error) {
+      console.error('[PWA] Service Worker registration failed:', error);
+    }
+  });
+}
+
+// ==========================================
+// CAPTURE INSTALL PROMPT
+// ==========================================
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  console.log('[PWA] Install prompt captured');
+
+  setTimeout(() => {
+    showInstallButton();
+  }, 3000);
+});
+
+// ==========================================
+// TOMBOL INSTALL
+// ==========================================
+function showInstallButton() {
+  const existingBtn = document.getElementById('installBtn');
+  if (existingBtn) return;
+
+  const installBtn = document.createElement('button');
+  installBtn.id = 'installBtn';
+  installBtn.innerHTML = '📲 Install App';
+
+  installBtn.style.cssText = `
+    position: fixed; bottom: 80px; left: 20px; z-index: 1500;
+    background: linear-gradient(135deg, #D4AF37, #AA8C2C);
+    color: #0A0A0A; border: none; padding: 12px 20px; border-radius: 25px;
+    font-weight: 600; font-size: 0.85rem; cursor: pointer;
+    box-shadow: 0 5px 20px rgba(212,175,55,0.4);
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Poppins', sans-serif;
+  `;
+
+  installBtn.onclick = () => {
+    showInstallOptions();
+  };
+
+  document.body.appendChild(installBtn);
+
+  // Auto hide
+  setTimeout(() => {
+    installBtn.style.opacity = '0';
+    installBtn.style.transform = 'translateY(100px)';
+    installBtn.style.transition = 'all 0.5s ease';
+    setTimeout(() => installBtn.remove(), 500);
+  }, 30000);
+}
+
+// ==========================================
+// MODAL PILIHAN INSTALL
+// ==========================================
+function showInstallOptions() {
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      background:#111;
+      padding:20px;
+      border-radius:15px;
+      text-align:center;
+      width:90%;
+      max-width:300px;
+      font-family:'Poppins',sans-serif;
+      color:#fff;
+    ">
+      <h3 style="margin-bottom:15px;">Pilih Instalasi</h3>
+
+      <button id="pwaInstall" style="
+        width:100%; margin-bottom:10px;
+        padding:12px; border:none;
+        border-radius:10px;
+        background:#D4AF37; color:#000;
+        font-weight:bold;
+        cursor:pointer;
+      ">
+        📲 Install Langsung
+      </button>
+
+      <button id="playstoreInstall" style="
+        width:100%;
+        padding:12px;
+        border:none;
+        border-radius:10px;
+        background:#0f9d58;
+        color:#fff;
+        font-weight:bold;
+        cursor:pointer;
+      ">
+        ▶️ Play Store
+      </button>
+
+      <button id="closeModal" style="
+        margin-top:10px;
+        background:none;
+        border:none;
+        color:#aaa;
+        cursor:pointer;
+      ">Tutup</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // INSTALL PWA
+  document.getElementById('pwaInstall').onclick = async () => {
+    if (!deferredPrompt) {
+      showToast('Browser tidak mendukung install langsung');
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+
+    if (outcome === 'accepted') {
+      console.log('[PWA] User accepted install');
+      showToast('Aplikasi berhasil di-install! 🎉');
+    }
+
+    deferredPrompt = null;
+    modal.remove();
+  };
+
+  // PLAY STORE (GANTI LINK INI)
+  document.getElementById('playstoreInstall').onclick = () => {
+    window.open('https://play.google.com/store/apps/details?id=io.grand.twa', '_blank');
+  };
+
+  // CLOSE
+  document.getElementById('closeModal').onclick = () => {
+    modal.remove();
+  };
+}
+
+// ==========================================
+// STATUS INSTALLED
+// ==========================================
+window.addEventListener('appinstalled', () => {
+  isPWAInstalled = true;
+  console.log('[PWA] App installed');
+  showToast('Terima kasih telah meng-install QR Studio Pro! 💛');
+
+  const installBtn = document.getElementById('installBtn');
+  if (installBtn) installBtn.remove();
+});
+
+// ==========================================
+// UPDATE NOTIFICATION
+// ==========================================
+function showUpdateNotification() {
+  if (confirm('Versi baru tersedia! Refresh untuk update?')) {
+    navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+  }
+}
+
+// ==========================================
+// ONLINE / OFFLINE STATUS
+// ==========================================
+window.addEventListener('online', () => {
+  showToast('Koneksi internet kembali! 🌐');
+});
+
+window.addEventListener('offline', () => {
+  showToast('Mode offline - Data tersimpan di perangkat 📴');
+});
+
+// ==========================================
+// PRECACHE
+// ==========================================
+if ('serviceWorker' in navigator && navigator.onLine) {
+  navigator.serviceWorker.ready.then((registration) => {
+    registration.active.postMessage({
+      type: 'CACHE_URLS',
+      urls: [
+        '/#products',
+        '/#hero'
+      ]
+    });
+  });
+}
+
+console.log('[PWA] QR Studio Pro PWA Ready');
+  </script>
+</body>
+</html>

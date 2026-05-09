@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pembaca QR Code</title>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #fff;
+        }
+
+        header { text-align: center; padding: 30px 20px 10px; }
+        header h1 {
+            font-size: 2rem;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5, #f953c6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        header p { color: #aaa; margin-top: 6px; font-size: 0.95rem; }
+
+        .container { width: 100%; max-width: 500px; padding: 20px; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn {
+            flex: 1; padding: 14px; border: 2px solid rgba(255,255,255,0.15);
+            border-radius: 14px; background: rgba(255,255,255,0.05);
+            color: #ccc; font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s ease; display: flex; align-items: center;
+            justify-content: center; gap: 8px;
+        }
+        .tab-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .tab-btn.active {
+            border-color: #3a7bd5; background: rgba(58, 123, 213, 0.2);
+            color: #fff; box-shadow: 0 0 20px rgba(58, 123, 213, 0.3);
+        }
+        .tab-btn svg { width: 22px; height: 22px; fill: currentColor; }
+
+        .panel { display: none; animation: fadeIn 0.4s ease; }
+        .panel.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        #reader { width: 100%; border-radius: 16px; overflow: hidden; background: #000; }
+        #reader video { border-radius: 16px; }
+
+        .camera-controls { display: flex; gap: 10px; margin-top: 15px; }
+        .btn {
+            flex: 1; padding: 13px; border: none; border-radius: 12px;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s ease; display: flex; align-items: center;
+            justify-content: center; gap: 6px;
+        }
+        .btn-start { background: linear-gradient(135deg, #00d2ff, #3a7bd5); color: #fff; }
+        .btn-start:hover { box-shadow: 0 4px 20px rgba(0, 210, 255, 0.4); transform: translateY(-2px); }
+        .btn-stop { background: linear-gradient(135deg, #f953c6, #b91d73); color: #fff; }
+        .btn-stop:hover { box-shadow: 0 4px 20px rgba(249, 83, 198, 0.4); transform: translateY(-2px); }
+        .btn-switch { background: rgba(255,255,255,0.1); color: #fff; border: 2px solid rgba(255,255,255,0.2); }
+        .btn-switch:hover { background: rgba(255,255,255,0.2); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+        .upload-area {
+            border: 2px dashed rgba(255,255,255,0.2); border-radius: 16px;
+            padding: 50px 20px; text-align: center; cursor: pointer;
+            transition: all 0.3s ease; background: rgba(255,255,255,0.03);
+        }
+        .upload-area:hover { border-color: #3a7bd5; background: rgba(58, 123, 213, 0.05); }
+        .upload-area svg { width: 60px; height: 60px; fill: #555; margin-bottom: 15px; }
+        .upload-area h3 { font-size: 1.1rem; color: #ccc; margin-bottom: 6px; }
+        .upload-area p { color: #666; font-size: 0.85rem; }
+        #file-input { display: none; }
+
+        .preview-container { margin-top: 15px; border-radius: 16px; overflow: hidden; display: none; }
+        .preview-container img { width: 100%; border-radius: 16px; display: block; }
+        #qr-reader-file { display: none; }
+
+        .result-card {
+            margin-top: 20px; background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 16px;
+            padding: 20px; display: none; animation: fadeIn 0.4s ease;
+        }
+        .result-card.show { display: block; }
+        .result-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #3a7bd5; margin-bottom: 10px; font-weight: 700; }
+        .result-text {
+            background: rgba(0,0,0,0.3); border-radius: 10px; padding: 14px;
+            word-break: break-all; font-size: 0.95rem; line-height: 1.6;
+            color: #e0e0e0; max-height: 200px; overflow-y: auto;
+        }
+        .result-actions { display: flex; gap: 10px; margin-top: 14px; }
+        .btn-copy { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-copy:hover { background: rgba(255,255,255,0.2); }
+        .btn-open { background: linear-gradient(135deg, #11998e, #38ef7d); color: #fff; display: none; }
+        .btn-open:hover { box-shadow: 0 4px 20px rgba(56, 239, 125, 0.3); }
+        
+        .auto-redirect-badge {
+            display: none; margin-top: 8px; padding: 8px; background: rgba(56, 239, 125, 0.15);
+            border: 1px solid rgba(56, 239, 125, 0.3); border-radius: 8px;
+            font-size: 0.8rem; color: #38ef7d; text-align: center;
+        }
+
+        .history-section { margin-top: 25px; }
+        .history-section h3 { font-size: 0.95rem; color: #888; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+        .btn-clear { background: none; border: none; color: #f953c6; font-size: 0.8rem; cursor: pointer; }
+        .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
+        .history-item {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s ease;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .history-item:hover { background: rgba(255,255,255,0.1); }
+        .history-icon {
+            width: 36px; height: 36px; border-radius: 8px; background: rgba(58, 123, 213, 0.2);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .history-icon svg { width: 18px; height: 18px; fill: #3a7bd5; }
+        .history-content { flex: 1; min-width: 0; }
+        .history-content p { font-size: 0.85rem; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .history-content span { font-size: 0.7rem; color: #666; }
+
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: rgba(56, 239, 125, 0.9); color: #000; padding: 12px 24px;
+            border-radius: 10px; font-weight: 600; font-size: 0.9rem; transition: transform 0.3s ease; z-index: 9999;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .status-bar { text-align: center; margin-top: 12px; font-size: 0.85rem; color: #666; }
+        .status-bar.scanning { color: #38ef7d; }
+        .status-bar.error { color: #f953c6; }
+
+        #reader__scan_region { border-radius: 16px; overflow: hidden; }
+        #reader__dashboard { display: none !important; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+        @media (max-width: 400px) { header h1 { font-size: 1.5rem; } .tab-btn { padding: 11px 8px; font-size: 0.85rem; } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>📷 Pembaca QR Code</h1>
+        <p>Scan dari kamera atau pilih dari galeri</p>
+    </header>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="camera" onclick="switchTab('camera')">
+                <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z"/><path d="M9 2 7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+                Kamera
+            </button>
+            <button class="tab-btn" data-tab="gallery" onclick="switchTab('gallery')">
+                <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                Galeri
+            </button>
+        </div>
+
+        <div class="panel active" id="panel-camera">
+            <div id="reader"></div>
+            <div class="camera-controls">
+                <button class="btn btn-start" id="btn-start" onclick="startCamera()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                    Mulai Scan
+                </button>
+                <button class="btn btn-stop" id="btn-stop" onclick="stopCamera()" disabled>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                    Stop
+                </button>
+                <button class="btn btn-switch" id="btn-switch" onclick="switchCamera()" disabled>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 11.5V13H9v2.5L5.5 12 9 8.5V11h6V8.5l3.5 3.5-3.5 3.5z"/></svg>
+                    Tukar
+                </button>
+            </div>
+            <div class="status-bar" id="camera-status">Tekan "Mulai Scan" untuk memulai</div>
+        </div>
+
+        <div class="panel" id="panel-gallery">
+            <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+                <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                <h3>Pilih Gambar QR Code</h3>
+                <p>Ketuk untuk memilih dari galeri</p>
+            </div>
+            <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)">
+            <div class="preview-container" id="preview-container">
+                <img id="preview-image" src="" alt="Preview">
+            </div>
+            <div id="qr-reader-file"></div>
+            <div class="camera-controls" id="gallery-actions" style="display:none; margin-top:15px;">
+                <button class="btn btn-switch" onclick="document.getElementById('file-input').click()">Pilih Gambar Lain</button>
+            </div>
+        </div>
+
+        <div class="result-card" id="result-card">
+            <div class="result-label">✅ Hasil QR Code</div>
+            <div class="result-text" id="result-text"></div>
+            <div class="auto-redirect-badge" id="auto-badge">🚀 Link akan terbuka otomatis...</div>
+            <div class="result-actions">
+                <button class="btn btn-copy" onclick="copyResult()">📋 Salin</button>
+                <button class="btn btn-open" id="btn-open" onclick="openResult()">🔗 Buka Link Manual</button>
+            </div>
+        </div>
+
+        <div class="history-section" id="history-section" style="display:none;">
+            <h3>📜 Riwayat Scan <button class="btn-clear" onclick="clearHistory()">Hapus Semua</button></h3>
+            <div class="history-list" id="history-list"></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Berhasil disalin!</div>
+
+    <script>
+        let html5QrCode = null;
+        let isScanning = false;
+        let currentFacingMode = "environment";
+        let currentResult = "";
+        let scanHistory = JSON.parse(localStorage.getItem("qr_history") || "[]");
+        let autoRedirectTimer = null;
+
+        document.addEventListener("DOMContentLoaded", () => renderHistory());
+
+        function switchTab(tab) {
+            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+            document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add("active");
+            document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+            document.getElementById(`panel-${tab}`).classList.add("active");
+            if (tab === "gallery" && isScanning) stopCamera();
+        }
+
+        function startCamera() {
+            const btnStart = document.getElementById("btn-start");
+            const btnStop = document.getElementById("btn-stop");
+            const btnSwitch = document.getElementById("btn-switch");
+            const status = document.getElementById("camera-status");
+
+            if (html5QrCode) html5QrCode.stop().catch(() => {});
+            html5QrCode = new Html5Qrcode("reader");
+
+            btnStart.disabled = true;
+            status.textContent = "⏳ Memulai kamera...";
+            status.className = "status-bar";
+
+            html5QrCode.start(
+                { facingMode: currentFacingMode },
+                { fps: 15, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+                onScanSuccess,
+                () => {}
+            ).then(() => {
+                isScanning = true;
+                btnStop.disabled = false;
+                btnSwitch.disabled = false;
+                status.textContent = "📷 Kamera aktif — Arahkan ke QR Code";
+                status.className = "status-bar scanning";
+            }).catch(err => {
+                status.textContent = "❌ Gagal mengakses kamera: " + err;
+                status.className = "status-bar error";
+                btnStart.disabled = false;
+            });
+        }
+
+        function stopCamera() {
+            const btnStart = document.getElementById("btn-start");
+            const btnStop = document.getElementById("btn-stop");
+            const btnSwitch = document.getElementById("btn-switch");
+            const status = document.getElementById("camera-status");
+
+            if (html5QrCode && isScanning) {
+                html5QrCode.stop().then(() => {
+                    isScanning = false;
+                    btnStart.disabled = false;
+                    btnStop.disabled = true;
+                    btnSwitch.disabled = true;
+                    status.textContent = "Kamera dihentikan.";
+                    status.className = "status-bar";
+                }).catch(console.error);
+            }
+        }
+
+        function switchCamera() {
+            currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+            if (isScanning) { stopCamera(); setTimeout(() => startCamera(), 500); }
+        }
+
+        function onScanSuccess(decodedText) {
+            showResult(decodedText);
+            addToHistory(decodedText, "camera");
+            if (navigator.vibrate) navigator.vibrate(200);
+            
+            const status = document.getElementById("camera-status");
+            status.textContent = "✅ QR Code terdeteksi!";
+            status.className = "status-bar scanning";
+
+            if (html5QrCode && isScanning) {
+                html5QrCode.pause(true);
+                setTimeout(() => { if (isScanning && html5QrCode) html5QrCode.resume(); }, 2000);
+            }
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const previewContainer = document.getElementById("preview-container");
+            const previewImage = document.getElementById("preview-image");
+            const galleryActions = document.getElementById("gallery-actions");
+
+            const reader = new FileReader();
+            reader.onload = (e) => { previewImage.src = e.target.result; previewContainer.style.display = "block"; };
+            reader.readAsDataURL(file);
+
+            const html5QrCodeFile = new Html5Qrcode("qr-reader-file");
+            html5QrCodeFile.scanFile(file, true)
+                .then(text => { showResult(text); addToHistory(text, "gallery"); galleryActions.style.display = "flex"; })
+                .catch(() => { showResult("⚠️ Tidak ditemukan QR Code pada gambar."); galleryActions.style.display = "flex"; });
+        }
+
+        function showResult(text) {
+            currentResult = text;
+            const resultCard = document.getElementById("result-card");
+            const resultText = document.getElementById("result-text");
+            const btnOpen = document.getElementById("btn-open");
+            const autoBadge = document.getElementById("auto-badge");
+
+            resultText.textContent = text;
+            resultCard.classList.add("show");
+            autoBadge.style.display = "none";
+            btnOpen.style.display = "none";
+
+            if (autoRedirectTimer) clearTimeout(autoRedirectTimer);
+
+            if (isURL(text)) {
+                let url = text.trim();
+                if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+
+                autoBadge.style.display = "block";
+                showToast("🔗 Link terdeteksi! Membuka secara otomatis...");
+
+                // Delay 1 detik agar UI render dulu, lalu buka tab baru
+                autoRedirectTimer = setTimeout(() => {
+                    const newTab = window.open(url, "_blank");
+                    
+                    if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
+                        // Pop-up diblokir browser
+                        autoBadge.textContent = "⚠️ Pop-up diblokir. Klik tombol di bawah.";
+                        btnOpen.style.display = "flex";
+                    } else {
+                        autoBadge.style.display = "none";
+                    }
+                }, 1000);
+            }
+        }
+
+        function isURL(str) {
+            try { new URL(str); return true; } catch { return /^https?:\/\/|www\./i.test(str.trim()); }
+        }
+
+        function openResult() {
+            let url = currentResult.trim();
+            if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+            window.open(url, "_blank");
+        }
+
+        function copyResult() {
+            navigator.clipboard.writeText(currentResult).then(() => showToast("✅ Berhasil disalin!"))
+            .catch(() => {
+                const ta = document.createElement("textarea");
+                ta.value = currentResult; document.body.appendChild(ta);
+                ta.select(); document.execCommand("copy");
+                document.body.removeChild(ta);
+                showToast("✅ Berhasil disalin!");
+            });
+        }
+
+        function addToHistory(text, source) {
+            scanHistory.unshift({ text, source, time: new Date().toLocaleString("id-ID") });
+            if (scanHistory.length > 20) scanHistory.pop();
+            localStorage.setItem("qr_history", JSON.stringify(scanHistory));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const section = document.getElementById("history-section");
+            const list = document.getElementById("history-list");
+            if (scanHistory.length === 0) { section.style.display = "none"; return; }
+            section.style.display = "block";
+            list.innerHTML = "";
+            scanHistory.forEach(entry => {
+                const isUrl = isURL(entry.text);
+                const div = document.createElement("div");
+                div.className = "history-item";
+                div.onclick = () => { showResult(entry.text); window.scrollTo({ top: 0, behavior: "smooth" }); };
+                div.innerHTML = `
+                    <div class="history-icon">
+                        <svg viewBox="0 0 24 24"><path d="${isUrl ? 'M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z' : 'M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z'}"/></svg>
+                    </div>
+                    <div class="history-content">
+                        <p>${escapeHtml(entry.text)}</p>
+                        <span>${entry.time} · ${entry.source === "camera" ? "📷 Kamera" : "🖼️ Galeri"}</span>
+                    </div>`;
+                list.appendChild(div);
+            });
+        }
+
+        function clearHistory() {
+            scanHistory = [];
+            localStorage.removeItem("qr_history");
+            renderHistory();
+            showToast("🗑️ Riwayat dihapus");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            toast.textContent = msg;
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), 2500);
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement("div");
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

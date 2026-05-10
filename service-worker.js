@@ -1,9 +1,9 @@
 const CACHE_NAME = 'qr-studio-pro-v1.0';
 const CORE_ASSETS = [
   '/',
-  '/index.html',
-  '/manifest.json',
-  '/offline.html',
+  './index.html',
+  './manifest.json',
+  './offline.html',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
   'https://unpkg.com/qr-code-styling@1.6.0-rc.1/lib/qr-code-styling.js'
 ];
